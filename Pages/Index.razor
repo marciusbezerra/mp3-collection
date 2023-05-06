@@ -1,0 +1,73 @@
+﻿@page "/"
+@using System.Text
+@inject Mp3Service mp3Service
+@inject NavigationManager NavigationManager
+
+<div class="lista-midia">
+    @if (listaMidias != null && listaMidias.Count > 0)
+    {
+        @foreach (InfoMidia midia in listaMidias)
+        {
+            <div class="midia-info" @onclick="@(e => LerMidia(midia))" style="cursor:pointer">
+                <div class="capa">
+                    @if (midia.ImagemCapa != null)
+                    {
+                        <img src="@midia.ImagemCapa" />
+                    }
+                </div>
+                <div class="nomes">
+                    <p><strong>@midia.Titulo</strong><br />@midia.Artistas</p>
+                </div>
+            </div>
+        }
+    }
+</div>
+@if (listaMidias == null || listaMidias.Count == 0)
+{
+    <div><p>Nenhum mp3 encontrado, crie um link simbólico na pasta wwwroot, ex: <strong>mklink /J music "D:\Downloads\Deezer_Music\SOULFUL HOUSE 2019"</strong></p></div>
+}
+
+@code{
+
+    List<InfoMidia> listaMidias = new List<InfoMidia>();
+
+    string path = @$"{Directory.GetCurrentDirectory()}\wwwroot\music";
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            var arquivos = System.IO.Directory.GetFiles(path);
+            foreach (var arquivo in arquivos)
+            {
+                TagLib.File file = mp3Service.LerTags(arquivo);
+                InfoMidia mediaInfo = new InfoMidia();
+                mediaInfo.Titulo = file.Tag.Title;
+                mediaInfo.Artistas = string.Join(" | ", file.Tag.Performers);
+                mediaInfo.Arquivo = $"music/{Path.GetFileName(arquivo)}";
+                var firstPicture = file.Tag.Pictures.FirstOrDefault(p => p.Type == TagLib.PictureType.FrontCover);
+                if (firstPicture == null) firstPicture = file.Tag.Pictures.FirstOrDefault();
+
+                if (firstPicture != null)
+                {
+                    var bin = (byte[])(file.Tag.Pictures[0].Data.Data);
+                    var imageStr = $"data:{file.Tag.Pictures[0].MimeType};base64,{Convert.ToBase64String(bin)}";
+                    mediaInfo.ImagemCapa = imageStr;
+                }
+
+                listaMidias.Add(mediaInfo);
+            }
+        }
+        catch (Exception)
+        {
+
+        }
+    }
+
+    public void LerMidia(InfoMidia midia)
+    {
+        var arquivoBytes = Encoding.ASCII.GetBytes(midia.Arquivo);
+        var arquivoBase64 = System.Convert.ToBase64String(arquivoBytes);
+        NavigationManager.NavigateTo($"MostraMidia/{arquivoBase64}");
+    }
+}

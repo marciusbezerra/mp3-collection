@@ -1,0 +1,37 @@
+﻿@page "/MostraMidia/{Midia}"
+@using System.Text
+@inject Mp3Service mp3Service
+
+@if (midiaAtual != null)
+{
+<div class="mostra-midia">
+    <div class="midia-titulo">
+        <h2>@midiaAtual.Titulo</h2>
+        <span>@midiaAtual.Artistas</span>
+    </div>
+    <div>
+        <img src="@midiaAtual.ImagemCapa" alt="@midiaAtual.Titulo" asp-append-version="true" />
+    </div>
+    <div>
+        <audio src="@midiaAtual.Arquivo" asp-append-version="true" controls controlsList="nodownload" autoplay />
+    </div>
+</div>
+}
+
+@code {
+    [Parameter]
+    public string Midia { get; set; }
+
+    InfoMidia midiaAtual;
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrWhiteSpace(Midia))
+        {
+            byte[] arquivoBytes = System.Convert.FromBase64String(Midia);
+            string arquivo = System.Text.ASCIIEncoding.ASCII.GetString(arquivoBytes);
+            var caminhoArquivo = @$"{Directory.GetCurrentDirectory()}\wwwroot\music\{Path.GetFileName(arquivo)}";
+            midiaAtual = mp3Service.PegaInfoMidia(caminhoArquivo);
+        }
+    }
+}
